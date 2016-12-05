@@ -40,7 +40,7 @@ fun dates_in_month (l : ((int*int*int)list), month : int) =
 fun dates_in_months (l : ((int*int*int)list), ms : int list) =
   if null ms
   then []
-  else dates_in_month(l, hd ms) :: dates_in_months(l, tl ms)
+  else dates_in_month(l, hd ms) @ dates_in_months(l, tl ms)
 
 fun get_nth (strs : string list, n : int) =
     if n <= 1
@@ -140,11 +140,11 @@ fun reasonable_date (date : (int*int*int)) =
         let
           val day_of_months = if is_leap_year(year) then leap_year_month else normal_year_month
           fun get_nth_(n : int, xs : int list) =
-            if n = 0
+            if n <= 1
             then hd xs
             else get_nth_(n - 1, tl xs)
         in
-          day > 0 andalso (day < get_nth_(month, day_of_months))
+          day > 0 andalso (day <= get_nth_(month, day_of_months))
         end
   in
     y > 0 andalso m > 0 andalso m <= 12 andalso day_valid(y, m, d)
