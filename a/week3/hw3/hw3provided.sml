@@ -78,32 +78,40 @@ val count_wild_and_variable_lengths =
     g (fn _ => 1) (fn x => String.size x)
 
 fun count_some_var (s, p) =
-  g (fn _ => 0) (fn x => if x = s then 1 else 0) p            
+  g (fn _ => 0) (fn v => if v = s then 1 else 0) p
 
 fun check_pat p =
-  let fun all_var p =
-        case p of Variable x        => [x]
-                | TupleP ps         => List.foldl (fn (a,b) => a@b) [] (map all_var ps)
-                | ConstructorP(_,p') => all_var p'
-                | _ => []
-      fun has_repeat lst =
-        case lst of (s:: lst') => if (List.exists (fn (x) => x = s) lst') then true
-                                  else has_repeat lst'
-                  | _ => false
+  let
+      fun all_var p =
+        case p of
+            Variable v => [v]
+          | TupleP xs => List.foldl (fn (a, b) => a@b) [] (List.map all_var xs)
+          | ConstructorP (_, np) => all_var np
+          | _ => []
+
+      fun has_repeat l =
+        case l of
+            (x::xs) => if (List.exists (fn s => x = s) xs)
+                       then true else has_repeat xs
+          | _ => false
   in
       not ((has_repeat o all_var) p)
   end
       
 
 fun match (v, p) =
-  case (p, v) of (Wildcard, _ ) => SOME []
-               | (Variable s, v) => SOME [(s, v)]
-               | (UnitP, Unit)  => SOME []
-               | (ConstP x, Const y) => if x = y then SOME [] else NONE
-               | (ConstructorP (s1,p), Constructor (s2,v)) => if s1 = s2 then match(v, p) else NONE
-               | (TupleP ps, Tuple vs) => if length(ps) <> length(vs) then NONE 
-                                          else all_answers (fn (p,v) => match(v, p)) (ListPair.zip(ps, vs))
-               | (_, _) => NONE
+  case (p, v) of
+      (Wildcard, _ ) => SOME []
+    | (Variable s, v) => SOME [(s, v)]
+    | (UnitP, Unit)  => SOME []
+    | (ConstP x, Const y) =>
+      if x = y then SOME [] else NONE
+    | (ConstructorP (s1,p), Constructor (s2,v)) =>
+      if s1 = s2 then match(v, p) else NONE
+    | (TupleP ps, Tuple vs) =>
+      if length(ps) <> length(vs) then NONE 
+      else all_answers (fn (p,v) => match(v, p)) (ListPair.zip(ps, vs))
+    | (_, _) => NONE
 
 fun first_match v pattern_list =
   SOME (first_answer (fn p => match(v, p)) pattern_list)
